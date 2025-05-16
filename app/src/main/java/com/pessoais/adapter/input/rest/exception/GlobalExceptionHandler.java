@@ -4,6 +4,7 @@ import com.pessoais.adapter.input.rest.dto.ErrorResponse;
 import com.pessoais.domain.exception.BusinessException;
 import com.pessoais.domain.exception.FeignException;
 import com.pessoais.domain.exception.ResourceAlreadyExistException;
+import com.pessoais.domain.exception.ResourceBadRequestException;
 import com.pessoais.domain.exception.ResourceNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -24,7 +25,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBaseException(
             BusinessException ex, HttpServletRequest request) {
-        log.error("Application error: {}", ex.getMessage(), ex);
+        log.error("Erro da aplicação: {}", ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
@@ -33,16 +34,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
             ResourceNotFoundException ex, HttpServletRequest request) {
-        log.error("Resource not found: {}", ex.getMessage());
+        log.error("Recurso não encontrado: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
     }
 
+    @ExceptionHandler(ResourceBadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleResourceBadRequestException(
+            ResourceBadRequestException ex, HttpServletRequest request) {
+        log.error("Requisição inválida para o recurso: {}", ex.getMessage());
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
+    }
+
     @ExceptionHandler(ResourceAlreadyExistException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
+    public ResponseEntity<ErrorResponse> handleResourceAlreadyExistException(
             ResourceAlreadyExistException ex, HttpServletRequest request) {
-        log.error("Resource already exist: {}", ex.getMessage());
+        log.error("Recurso já existente: {}", ex.getMessage());
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
@@ -51,7 +61,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<?> handleFeignException(
             FeignException ex, HttpServletRequest request) {
-        log.error("FeignException error: {}", ex.getMessage(), ex);;
+        log.error("Erro ao chamar serviço externo (Feign): {}", ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ErrorResponse.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI()));
@@ -60,11 +70,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex, HttpServletRequest request) {
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        log.error("Erro inesperado: {}", ex.getMessage(), ex);
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ErrorResponse.of("INTERNAL_SERVER_ERROR",
-                        "An unexpected error occurred", request.getRequestURI()));
+                .body(ErrorResponse.of("ERRO_INTERNO_SERVIDOR",
+                        "Ocorreu um erro inesperado", request.getRequestURI()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -76,10 +86,10 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.toList());
 
-        log.error("Validation error: {}", errors);
+        log.error("Erro de validação: {}", errors);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of("VALIDATION_ERROR", "Validation failed",
+                .body(ErrorResponse.of("ERRO_VALIDACAO", "Falha de validação",
                         request.getRequestURI(), errors));
     }
 
@@ -91,10 +101,10 @@ public class GlobalExceptionHandler {
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.toList());
 
-        log.error("Constraint violation: {}", errors);
+        log.error("Violação de restrição: {}", errors);
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ErrorResponse.of("CONSTRAINT_VIOLATION", "Validation failed",
+                .body(ErrorResponse.of("VIOLACAO_RESTRICAO", "Falha de validação",
                         request.getRequestURI(), errors));
     }
 }

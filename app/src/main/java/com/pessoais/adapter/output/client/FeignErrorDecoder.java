@@ -1,7 +1,6 @@
 package com.pessoais.adapter.output.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import com.pessoais.domain.exception.FeignException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
@@ -22,9 +21,9 @@ public class FeignErrorDecoder implements ErrorDecoder {
         log.error("Feign error [{}] in {}: {}", response.status(), methodKey, errorMessage);
 
         return switch (response.status()) {
-            case 400 -> new FeignException("INVALID_REQUEST", "Invalid request to service: " + errorMessage);
-            case 404 -> new FeignException("NOT_FOUND", "Not found: " + errorMessage);
-            case 500 -> new FeignException("USER_SERVICE_ERROR", "Service error: " + errorMessage);
+            case 400 -> new FeignException("INVALID_REQUEST", "Solicitação de serviço inválida: " + errorMessage);
+            case 404 -> new FeignException("NOT_FOUND", "Não encontrado: " + errorMessage);
+            case 500 -> new FeignException("USER_SERVICE_ERROR", "Erro de serviço: " + errorMessage);
             default -> new ResponseStatusException(HttpStatus.valueOf(response.status()), errorMessage);
         };
     }
@@ -38,12 +37,11 @@ public class FeignErrorDecoder implements ErrorDecoder {
                 RemoteError remoteError = mapper.readValue(json, RemoteError.class);
                 return String.format("[%s] %s (%s)", remoteError.getErrorCode(), remoteError.getMessage(), remoteError.getPath());
             } catch (Exception e) {
-                // Fallback se não conseguir fazer parsing
                 return json;
             }
 
         } catch (IOException e) {
-            return "Error reading error message";
+            return "Erro ao ler mensagem de erro";
         }
     }
 }

@@ -19,77 +19,78 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class PersonUseCase implements IPersonUseCase {
+
     private final IPersonRepository personRepository;
     private final PersonMapper personMapper;
     private final ObjectMapper objectMapper;
 
     @Override
     public PersonDTO create(PersonDTO personDTO) {
-        log.info("Starting creation of person with CPF: {}", personDTO.getCpf());
+        log.info("Iniciando criação da pessoa com CPF: {}", personDTO.getCpf());
 
         if (personRepository.existByCpf(personDTO.getCpf())) {
-            log.warn("Person with CPF {} already exists", personDTO.getCpf());
-            throw new ResourceNotFoundException("Person already exists", "Person already exists with CPF: " + personDTO.getCpf());
+            log.warn("Pessoa com CPF {} já existe", personDTO.getCpf());
+            throw new ResourceNotFoundException("Pessoa já existe", "Pessoa já cadastrada com CPF: " + personDTO.getCpf());
         }
 
         var person = personMapper.toEntity(personDTO);
 
         if (person.getContacts() != null) {
             person.getContacts().forEach(contact -> contact.setPerson(person));
-            log.debug("Contacts associated with the person.");
+            log.debug("Contatos associados à pessoa.");
         }
 
         if (person.getAddresses() != null) {
             person.getAddresses().forEach(address -> address.setPerson(person));
-            log.debug("Addresses associated with the person.");
+            log.debug("Endereços associados à pessoa.");
         }
 
         var saved = personRepository.save(person);
-        log.info("Person created successfully. ID: {}", saved.getId());
+        log.info("Pessoa criada com sucesso. ID: {}", saved.getId());
 
         return personMapper.toDto(saved);
     }
 
     @Override
     public PersonDTO getPerson(String idPerson) {
-        log.info("Searching for person with ID: {}", idPerson);
+        log.info("Buscando pessoa com ID: {}", idPerson);
 
         var person = personRepository.findByIdPerson(idPerson)
                 .orElseThrow(() -> {
-                    log.warn("Person not found with ID: {}", idPerson);
-                    return new ResourceNotFoundException("Person not found", "Person not found with ID: " + idPerson);
+                    log.warn("Pessoa não encontrada com o ID: {}", idPerson);
+                    return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
                 });
 
-        log.info("Person found with ID: {}", idPerson);
+        log.info("Pessoa encontrada com ID: {}", idPerson);
         return personMapper.toDto(person);
     }
 
     @Override
     public void delete(String id) {
-        log.info("Delete method not yet implemented. Received ID: {}", id);
-        // Implement logic here, if necessary
+        log.info("Método de exclusão ainda não implementado. ID recebido: {}", id);
+        // Lógica de exclusão poderá ser implementada aqui
     }
 
     @Override
     public PersonDTO patchPerson(String idPerson, JsonPatch patch) throws JsonPatchException, JsonProcessingException {
-        log.info("Applying patch to person with ID: {}", idPerson);
+        log.info("Aplicando patch na pessoa com ID: {}", idPerson);
 
         var person = personRepository.findByIdPerson(idPerson)
                 .orElseThrow(() -> {
-                    log.warn("Person not found for patch with ID: {}", idPerson);
-                    return new ResourceNotFoundException("Person not found", "Person not found with ID: " + idPerson);
+                    log.warn("Pessoa não encontrada para patch com ID: {}", idPerson);
+                    return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
                 });
 
         person = applyPatchToCustomer(patch, person);
 
         var saved = personRepository.save(person);
-        log.info("Patch successfully applied to person with ID: {}", saved.getId());
+        log.info("Patch aplicado com sucesso na pessoa com ID: {}", saved.getId());
 
         return personMapper.toDto(saved);
     }
 
     private Person applyPatchToCustomer(JsonPatch patch, Person targetCustomer) throws JsonPatchException, JsonProcessingException {
-        log.debug("Converting person to JSON and applying patch.");
+        log.debug("Convertendo pessoa para JSON e aplicando patch.");
         JsonNode patched = patch.apply(objectMapper.convertValue(targetCustomer, JsonNode.class));
         return objectMapper.treeToValue(patched, Person.class);
     }

@@ -1,0 +1,84 @@
+name: Docker Push and ECR
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+    secrets:
+      aws-access-key-id:
+        required: true
+      aws-secret-access-key:
+        required: true
+      aws-region:
+        required: true
+      ecr_repository:
+        required: true
+
+jobs:
+  ecr:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.aws-access-key-id }}
+          aws-secret-access-key: ${{ secrets.aws-secret-access-key }}
+          aws-region: ${{ secrets.aws-region }}
+
+      - name: Read destroy configuration
+        id: read-destroy-config
+        run: |
+          ENV="${{ inputs.environment }}"
+          if [ -z "$ENV" ]; then
+            echo "Error: Environment variable is not set."
+            exit 1
+          fi
+          DESTROY=$(jq -r ".${ENV}" ./infra/destroy_config.json)
+          echo "destroy=$DESTROY" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Delete ECR repository
+        if: steps.read-destroy-config.outputs.destroy == 'true'
+        id: ecr-destroy
+        run: |
+          aws ecr delete-repository \
+            --repository-name "${{ secrets.ecr_repository }}" \
+            --region ${{ secrets.aws-region }} \
+            --force
+
+      - name: Build, tag, and push image to Amazon ECR
+        if: steps.read-destroy-config.outputs.destroy != 'true'
+        id: ecr-push-image-ECR
+        run: |
+          cd ./app
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          IMAGE_TAG=$(date +%Y%m%d%H%M%S)
+          ECR_URI="$ACCOUNT_ID.dkr.ecr.${{ secrets.aws-region }}.amazonaws.com/${{ secrets.ecr_repository }}"
+
+          aws ecr describe-repositories --repository-names "${{ secrets.ecr_repository }}" \
+            --region ${{ secrets.aws-region }} || \
+            aws ecr create-repository --repository-name "${{ secrets.ecr_repository }}" \
+            --region ${{ secrets.aws-region }}
+
+          docker build -t $ECR_URI:$IMAGE_TAG -t $ECR_URI:latest .
+          docker push $ECR_URI:$IMAGE_TAG
+          docker push $ECR_URI:latest
+
+          echo "IMAGE_URI=$ECR_URI:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Set image URI output
+        id: set-image-uri
+        run: echo "image_uri=$ECR_URI:$IMAGE_TAG" >> $GITHUB_OUTPUT

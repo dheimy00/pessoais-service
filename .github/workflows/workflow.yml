@@ -1,0 +1,85 @@
+name: Deploy Spring Boot to ECS
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build app
+        run: |
+          cd ./app
+          mvn install -Dmaven.test.skip=true
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Run tests
+        run: |
+          cd ./app
+          mvn test -Dmaven.test.skip=true
+
+  ecr:
+    name: Publish ECR
+    uses: ./.github/workflows/publish_ecr.yml
+    needs:
+      - build
+      - test
+    with:
+      environment: dev
+    secrets:
+      aws-region: ${{ secrets.AWS_REGION }}
+      ecr_repository: ${{ secrets.ECR_REPOSITORY }}
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+  terraform:
+    name: Deploy ECS
+    uses: ./.github/workflows/terraform.yml
+    needs:
+      - ecr
+    with:
+      environment: dev
+      aws-assume-role-arn: "arn:aws:iam::788796860262:role/github-actions-dheimy00-pipeline"
+      aws-region: "us-east-2"
+      aws-statefile-s3-bucket: "dheimy00-us-east-2-terraform-statefiles"
+      aws-lock-dynamodb-table: "dheimy00-us-east-2-terraform-lock"
+
+  ecs_service_health:
+    name: Check ECS Service
+    uses: ./.github/workflows/ecs_service.yml
+    needs:
+      - terraform
+    with:
+      environment: dev
+    secrets:
+      aws-region: ${{ secrets.AWS_REGION }}
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      cluster_name: ${{ secrets.CLUSTER_NAME }}
+      service_name: ${{ secrets.SERVICE_NAME }}

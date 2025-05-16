@@ -7,6 +7,7 @@ import com.github.fge.jsonpatch.JsonPatch;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.pessoais.adapter.input.rest.dto.PersonDTO;
 import com.pessoais.application.usecase.mappers.PersonMapper;
+import com.pessoais.domain.exception.ResourceAlreadyExistException;
 import com.pessoais.domain.exception.ResourceNotFoundException;
 import com.pessoais.domain.model.Person;
 import com.pessoais.domain.port.input.IPersonUseCase;
@@ -30,7 +31,7 @@ public class PersonUseCase implements IPersonUseCase {
 
         if (personRepository.existByCpf(personDTO.getCpf())) {
             log.warn("Pessoa com CPF {} já existe", personDTO.getCpf());
-            throw new ResourceNotFoundException("Pessoa já existe", "Pessoa já cadastrada com CPF: " + personDTO.getCpf());
+            throw new ResourceAlreadyExistException("ALREADY_EXIST", "Pessoa já cadastrada com CPF: " + personDTO.getCpf());
         }
 
         var person = personMapper.toEntity(personDTO);

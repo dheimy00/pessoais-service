@@ -82,27 +82,6 @@ resource "aws_lb_listener" "tcp" {
 # ----------------------
 # Security Group
 # ----------------------
-
-resource "aws_security_group" "ecs_tasks" {
-  name        = "${var.service_name}-ecs-tasks-sg"
-  vpc_id      = var.vpc_id
-  description = "Allow HTTP inbound for ECS tasks"
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [for s in values(data.aws_subnet.subnet_private) : s.cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 # Security Group for NLB
 resource "aws_security_group" "nlb_sg" {
   name        = "${var.service_name}-nlb-sg"
@@ -176,8 +155,8 @@ resource "aws_ecs_task_definition" "app" {
   container_definitions = jsonencode([{
     name        = "${var.service_name}-container",
     image       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.service_name}-app:latest",
-#    environment = var.task_environment_vars,
-#    secrets     = var.secrets,
+    environment = var.task_environment_vars,
+    secrets     = var.secrets,
     portMappings = [{
       containerPort = 8080,
       hostPort      = 8080,

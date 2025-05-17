@@ -18,10 +18,6 @@ data "aws_subnet" "subnet_private" {
   id       = each.value
 }
 
-data "aws_security_group" "security_group" {
-  id = "sg-09ce1a832c78b30f6"
-}
-
 locals {
   nlb_arn = var.create_nlb ? aws_lb.app[0].arn : data.aws_lb.existing_nlb[0].arn
 }
@@ -82,6 +78,26 @@ resource "aws_lb_listener" "tcp" {
 # ----------------------
 # Security Group
 # ----------------------
+resource "aws_security_group" "ecs_tasks" {
+  name        = "${var.service_name}-ecs-tasks-sg"
+  vpc_id      = var.vpc_id
+  description = "Allow HTTP inbound for ECS tasks"
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [for s in values(data.aws_subnet.subnet_private) : s.cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 # Security Group for NLB
 resource "aws_security_group" "nlb_sg" {
   name        = "${var.service_name}-nlb-sg"
@@ -117,7 +133,7 @@ resource "aws_security_group" "rds" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [data.aws_security_group.security_group.id]
+    security_groups = [aws_security_group.ecs_tasks.id]
   }
 
   egress {
@@ -202,7 +218,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     subnets          = var.subnets_id
-    security_groups  = [data.aws_security_group.security_group.id]
+    security_groups  = [aws_security_group.ecs_tasks.id]
     assign_public_ip = false
   }
 }

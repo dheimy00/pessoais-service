@@ -1,7 +1,7 @@
 service_name = "persons"
 cluster_name = "gestao-veiculos-cluster"
-vpc_id       = "vpc-06a723d80505a0dc3"
-subnets_id   = ["subnet-012e4b031a352e929", "subnet-018e8d96aa9e98cf2"]
+vpc_id       = "vpc-099fefea06e3c4413"
+subnets_id   = ["subnet-0585a9f9a6a21cb96", "subnet-03fb17cf32b4ae63e"]
 region       = "us-east-2"
 
 # task_environment_vars = [

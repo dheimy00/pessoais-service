@@ -67,6 +67,20 @@ public class PersonUseCase implements IPersonUseCase {
     }
 
     @Override
+    public boolean searchPerson(String idPerson) {
+        log.info("Buscando pessoa com ID: {}", idPerson);
+
+        personRepository.findByIdPerson(idPerson)
+                .orElseThrow(() -> {
+                    log.warn("Pessoa não encontrada com o ID: {}", idPerson);
+                    return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
+                });
+
+        log.info("Pessoa encontrada com ID: {}", idPerson);
+        return true;
+    }
+
+    @Override
     public void delete(String id) {
         log.info("Método de exclusão ainda não implementado. ID recebido: {}", id);
         // Lógica de exclusão poderá ser implementada aqui

@@ -15,5 +15,7 @@ public interface IPersonUseCase {
 
     void delete(String idPerson);
 
+    boolean searchPerson(String idPerson);
+
     PersonDTO patchPerson(String idPerson, JsonPatch patch) throws JsonPatchException, JsonProcessingException;
 }

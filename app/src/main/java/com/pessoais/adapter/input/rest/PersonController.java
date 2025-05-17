@@ -31,8 +31,13 @@ public class PersonController {
     }
 
     @GetMapping("/{id_person}")
-    public ResponseEntity<?> findByIdUser(@PathVariable("id_person") String idUser) {
-        return ResponseEntity.ok(personUseCase.getPerson(idUser));
+    public ResponseEntity<?> findByIdUser(@PathVariable("id_person") String idPerson) {
+        return ResponseEntity.ok(personUseCase.getPerson(idPerson));
+    }
+
+    @GetMapping("/searchCustomer/{id_person}")
+    public ResponseEntity<?> searchPerson(@PathVariable("id_person") String idPerson) {
+        return ResponseEntity.ok(personUseCase.searchPerson(idPerson));
     }
 
     @PatchMapping(value = "/{id_person}/updated",consumes = "application/json-patch+json")

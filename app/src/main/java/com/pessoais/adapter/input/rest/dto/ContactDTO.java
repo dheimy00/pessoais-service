@@ -20,15 +20,16 @@ public class ContactDTO {
     private String idContact;
 
     @JsonProperty("telephone")
-    @NotBlank(message = "Telephone field is mandatory")
+    @NotBlank(message = "O campo telefone é obrigatório")
     private String telephone;
 
     @JsonProperty("cellPhone")
-    @NotBlank(message = "Cell Phone field is mandatory")
+    @NotBlank(message = "O campo celular é obrigatório")
     private String cellPhone;
 
     @JsonProperty("email")
-    @NotBlank(message = "Email field is mandatory")
-    @Email
+    @NotBlank(message = "O campo e-mail é obrigatório")
+    @Email(message = "O formato do e-mail é inválido")
     private String email;
 }
+

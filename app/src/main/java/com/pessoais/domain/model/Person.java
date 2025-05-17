@@ -11,9 +11,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
-@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,7 +28,7 @@ public class Person extends BaseEntityAudit {
     private String cpf;
 
     @Column(name = "birth",nullable = false)
-    private String birth;
+    private LocalDate birth;
 
     @OneToMany(mappedBy = "person", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Contact> contacts;

@@ -22,11 +22,13 @@ import java.util.List;
 public interface PersonMapper {
 
 
+    @Mapping(target = "id", source = "idPerson")
     @Mapping(target = "contacts", source = "contacts")
     @Mapping(target = "addresses", source = "addresses")
     @Mapping(target = "cpf", source = "cpf")
     Person toEntity(PersonDTO dto);
 
+    @Mapping(target = "idPerson", source = "id")
     @Mapping(target = "contacts", source = "contacts")
     @Mapping(target = "addresses", source = "addresses")
     @Mapping(target = "cpf", source = "cpf")

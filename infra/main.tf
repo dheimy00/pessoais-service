@@ -18,6 +18,10 @@ data "aws_subnet" "subnet_private" {
   id       = each.value
 }
 
+data "aws_security_group" "security_group" {
+  id = "sg-09ce1a832c78b30f6"
+}
+
 locals {
   nlb_arn = var.create_nlb ? aws_lb.app[0].arn : data.aws_lb.existing_nlb[0].arn
 }
@@ -134,7 +138,7 @@ resource "aws_security_group" "rds" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
+    security_groups = [data.aws_security_group.security_group.id]
   }
 
   egress {
@@ -202,7 +206,7 @@ resource "aws_ecs_task_definition" "app" {
 # ----------------------
 resource "aws_ecs_service" "app" {
   name            = "${var.service_name}-service"
-  cluster         = "${var.cluster_name}-cluster"
+  cluster         = "${var.cluster_name}"
   task_definition = aws_ecs_task_definition.app.arn
   launch_type     = "FARGATE"
   desired_count   = 1
@@ -219,7 +223,7 @@ resource "aws_ecs_service" "app" {
 
   network_configuration {
     subnets          = var.subnets_id
-    security_groups  = [aws_security_group.ecs_tasks.id]
+    security_groups  = [data.aws_security_group.security_group.id]
     assign_public_ip = false
   }
 }

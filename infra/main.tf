@@ -108,7 +108,7 @@ resource "aws_security_group" "nlb_sg" {
     from_port   = 8080
     to_port     = 8080
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [for s in values(data.aws_subnet.subnet_private) : s.cidr_block]
   }
 
   egress {

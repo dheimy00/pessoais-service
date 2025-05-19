@@ -14,14 +14,15 @@ region       = "us-east-2"
 secrets = [
   {
     name      = "DB_URL"
-    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv3-5P4TGE:DB_URL::"
+    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv1-Q0IYhU:DB_URL::"
   },
   {
     name      = "DB_USERNAME"
-    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv3-5P4TGE:DB_USERNAME::"
+    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv1-Q0IYhU:DB_USERNAME::"
   },
   {
     name      = "DB_PASSWORD"
-    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv3-5P4TGE:DB_PASSWORD::"
+    valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv1-Q0IYhU:DB_PASSWORD::"
   }
 ]
+

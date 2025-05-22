@@ -38,10 +38,8 @@ public interface PersonMapper {
 
     ContactDTO toDTO(Contact entity);
 
-    @Mapping(target = "zipCode", source = "zipCode")
     Address toEntity(AddressDTO dto);
 
-    @Mapping(target = "zipCode", source = "zipCode")
     AddressDTO toDTO(Address entity);
 
     @IterableMapping(elementTargetType = Contact.class)

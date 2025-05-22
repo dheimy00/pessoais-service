@@ -15,9 +15,11 @@ import com.pessoais.domain.port.output.IPersonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class PersonUseCase implements IPersonUseCase {
 
@@ -30,7 +32,7 @@ public class PersonUseCase implements IPersonUseCase {
         log.info("Iniciando criação da pessoa com CPF: {}", personDTO.getCpf());
 
         if (personRepository.existByCpf(personDTO.getCpf())) {
-            log.warn("Pessoa com CPF {} já existe", personDTO.getCpf());
+            log.info("Pessoa com CPF {} já existe", personDTO.getCpf());
             throw new ResourceAlreadyExistException("ALREADY_EXIST", "Pessoa já cadastrada com CPF: " + personDTO.getCpf());
         }
 
@@ -58,7 +60,7 @@ public class PersonUseCase implements IPersonUseCase {
 
         var person = personRepository.findByIdPerson(idPerson)
                 .orElseThrow(() -> {
-                    log.warn("Pessoa não encontrada com o ID: {}", idPerson);
+                    log.info("Pessoa não encontrada com o ID: {}", idPerson);
                     return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
                 });
 
@@ -72,7 +74,7 @@ public class PersonUseCase implements IPersonUseCase {
 
         personRepository.findByIdPerson(idPerson)
                 .orElseThrow(() -> {
-                    log.warn("Pessoa não encontrada com o ID: {}", idPerson);
+                    log.info("Pessoa não encontrada com o ID: {}", idPerson);
                     return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
                 });
 
@@ -92,7 +94,7 @@ public class PersonUseCase implements IPersonUseCase {
 
         var person = personRepository.findByIdPerson(idPerson)
                 .orElseThrow(() -> {
-                    log.warn("Pessoa não encontrada para patch com ID: {}", idPerson);
+                    log.info("Pessoa não encontrada para patch com ID: {}", idPerson);
                     return new ResourceNotFoundException("Pessoa não encontrada", "Pessoa não encontrada com ID: " + idPerson);
                 });
 

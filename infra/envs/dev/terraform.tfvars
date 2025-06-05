@@ -1,15 +1,9 @@
 project_name = "gestao-veiculos"
 service_name = "persons"
 cluster_name = "gestao-veiculos-cluster"
-vpc_id       = "vpc-07ed8eed7bf7c1a20"
-subnet_ids   = ["subnet-02c7c3ab1730493b5", "subnet-0187eeb0c0d494171"]
+vpc_id       = "vpc-0d80ebcc4b26e7568"
+subnet_ids   = ["subnet-0688c035a86d695c0", "subnet-07bab2db6ae6c899e"]
 
-# task_environment_vars = [
-#   {
-#     name  = "URL_ORDERS_SQS"
-#     value = "production"
-#   }
-# ]
 
 task_secrets = [
   {

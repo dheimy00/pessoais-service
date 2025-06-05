@@ -1,7 +1,12 @@
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-west-2"
+  default     = "us-east-2"
+}
+
+variable "project_name" {
+  description = "The name of project to be used for tagging"
+  type        = string
 }
 
 variable "service_name" {
@@ -20,18 +25,10 @@ variable "environment" {
   default     = "dev"
 }
 
-variable "container_name" {
-  default = "app"
-}
-
-variable "create_nlb" {
-  description = "Indica se o NLB deve ser criado ou não"
-  type        = bool
-  default     = true
-}
-
 variable "region" {
   description = "The AWS Region"
+  type        = string
+  default     = "us-east-2"
 }
 
 variable "vpc_id" {
@@ -39,27 +36,24 @@ variable "vpc_id" {
   description = "The CIDR block of the vpc"
 }
 
-variable "subnets_id" {
+variable "subnet_ids" {
   type        = list(string)
   description = "The CIDR block for the private subnet"
   default     = []
 }
 
 variable "task_environment_vars" {
-  description = "Variáveis de ambiente para a task ECS"
   type = list(object({
     name  = string
     value = string
   }))
-  default     = []
 }
 
-variable "secrets" {
+variable "task_secrets" {
   description = "Variáveis de ambiente para a task ECS"
   type = list(object({
     name      = string
     valueFrom = string
   }))
-  default     = []
+  default = []
 }
-

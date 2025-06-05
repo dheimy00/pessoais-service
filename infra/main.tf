@@ -1,126 +1,67 @@
-# ----------------------
-# Data Sources
-# ----------------------
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-data "aws_lb" "existing_nlb" {
-  count = var.create_nlb ? 0 : 1
-  name  = "${var.service_name}-nlb"
-}
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-data "aws_subnet" "subnet_private" {
-  for_each = toset(var.subnets_id)
-  id       = each.value
-}
 
-locals {
-  nlb_arn = var.create_nlb ? aws_lb.app[0].arn : data.aws_lb.existing_nlb[0].arn
-}
+module "ecs_fargate" {
+  source = "git::https://github.com/dheimy00/modules-infra-ecs-fargate-aws.git?ref=v1.0.14"
 
-# ----------------------
-# Load Balancer
-# ----------------------
-resource "aws_lb" "app" {
-  count              = var.create_nlb ? 1 : 0
-  name               = "${var.service_name}-nlb"
-  internal           = true
-  load_balancer_type = "network"
-  security_groups    = [aws_security_group.nlb_sg.id]
-  subnets            = var.subnets_id
+  # Basic Configuration
+  service_name = var.service_name
+  cluster_name = var.cluster_name
+  vpc_id       = var.vpc_id
+  subnet_ids   = var.subnet_ids
 
-  tags = {
-    Name        = "${var.service_name}-nlb"
-    Environment = var.environment
-  }
+  # Container Configuration
+  container_name  = "${var.service_name}-container"
+  container_image = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.service_name}-app:latest"
+  container_port  = 8080
+  host_port       = 8080
+  listener_port   = 8080
 
-  lifecycle {
-    prevent_destroy = false
-    ignore_changes  = [subnets, security_groups]
-  }
-}
+  # Roles
+  task_role_arn           = module.iamsr_module.role_arns["task-persons-role"]
+  task_execution_role_arn = module.iamsr_module.role_arns["execution-persons-role"]
 
-resource "aws_lb_target_group" "blue" {
-  name        = "${var.service_name}-tg-blue"
-  port        = 8080
-  protocol    = "TCP"
-  target_type = "ip"
-  vpc_id      = var.vpc_id
+  # Task Configuration
+  task_cpu                  = 256
+  task_memory               = 512
+  task_ephemeral_storage    = 21
+  task_environment_vars     = var.task_environment_vars
+  task_secrets              = var.task_secrets
+  health_check_command      = ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+  health_check_interval     = 30
+  health_check_timeout      = 5
+  health_check_retries      = 3
+  health_check_start_period = 30
 
-  health_check {
-    enabled             = true
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 2
-    protocol            = "TCP"
-    port                = "traffic-port"
-  }
-}
+  # Network Configuration
+  is_private_subnet = true
+  vpc_cidr          = "10.0.0.0/16"
+  alb_internal      = true
+  assign_public_ip  = false
 
-resource "aws_lb_listener" "tcp" {
-  load_balancer_arn = local.nlb_arn
-  port              = 8080
-  protocol          = "TCP"
+  # ALB Configuration
+  health_check_protocol = "HTTP"
+  health_check_path     = "/actuator/health"
+  health_check_port     = "traffic-port"
+  health_check_matcher  = "200"
 
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.blue.arn
-  }
 
-  depends_on = [aws_lb_target_group.blue]
-}
-
-# ----------------------
-# Security Group
-# ----------------------
-resource "aws_security_group" "ecs_tasks" {
-  name        = "${var.service_name}-ecs-tasks-sg"
-  vpc_id      = var.vpc_id
-  description = "Allow HTTP inbound for ECS tasks"
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = [for s in values(data.aws_subnet.subnet_private) : s.cidr_block]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-# Security Group for NLB
-resource "aws_security_group" "nlb_sg" {
-  name        = "${var.service_name}-nlb-sg"
-  description = "Allow inbound traffic to NLB"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # Auto Scaling Configuration
+  desired_count             = 2
+  min_capacity              = 1
+  max_capacity              = 3
+  enable_cpu_autoscaling    = true
+  enable_memory_autoscaling = true
+  cpu_target_value          = 70
+  memory_target_value       = 70
+  scale_in_cooldown         = 300
+  scale_out_cooldown        = 300
 
   tags = {
-    Name        = "${var.service_name}-nlb-sg"
     Environment = "${var.environment}"
+    Project     = "${var.project_name}"
   }
 }
 
@@ -133,7 +74,7 @@ resource "aws_security_group" "rds" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
+    security_groups = [module.ecs_fargate.ecs_tasks_security_group_id]
   }
 
   egress {
@@ -146,79 +87,5 @@ resource "aws_security_group" "rds" {
   tags = {
     Name        = "${var.service_name}-rds-sg"
     Environment = "${var.environment}"
-  }
-}
-
-# ----------------------
-# CloudWatch Logs
-# ----------------------
-resource "aws_cloudwatch_log_group" "ecs_logs" {
-  name              = "/ecs/${var.service_name}"
-  retention_in_days = 30
-}
-
-# ----------------------
-# ECS Task Definition
-# ----------------------
-resource "aws_ecs_task_definition" "app" {
-  family                   = "${var.service_name}-task"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn            = aws_iam_role.ecs_task_role.arn
-  container_definitions = jsonencode([{
-    name        = "${var.service_name}-container",
-    image       = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com/${var.service_name}-app:latest",
-    environment = var.task_environment_vars,
-    secrets     = var.secrets,
-    portMappings = [{
-      containerPort = 8080,
-      hostPort      = 8080,
-      protocol      = "tcp"
-    }],
-    logConfiguration = {
-      logDriver = "awslogs",
-      options = {
-        awslogs-group         = aws_cloudwatch_log_group.ecs_logs.name,
-        awslogs-region        = data.aws_region.current.name,
-        awslogs-stream-prefix = "ecs"
-      }
-    },
-    healthCheck = {
-      command     = ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval    = 30,
-      timeout     = 5,
-      retries     = 3,
-      startPeriod = 30
-    }
-  }])
-}
-
-# ----------------------
-# ECS Service
-# ----------------------
-resource "aws_ecs_service" "app" {
-  name            = "${var.service_name}-service"
-  cluster         = "${var.cluster_name}"
-  task_definition = aws_ecs_task_definition.app.arn
-  launch_type     = "FARGATE"
-  desired_count   = 1
-
-  deployment_controller {
-    type = "ECS"
-  }
-
-  load_balancer {
-    target_group_arn = aws_lb_target_group.blue.arn
-    container_name   = "${var.service_name}-container"
-    container_port   = 8080
-  }
-
-  network_configuration {
-    subnets          = var.subnets_id
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
   }
 }

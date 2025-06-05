@@ -1,8 +1,8 @@
+project_name = "gestao-veiculos"
 service_name = "persons"
 cluster_name = "gestao-veiculos-cluster"
 vpc_id       = "vpc-07ed8eed7bf7c1a20"
-subnets_id   = ["subnet-02c7c3ab1730493b5", "subnet-0187eeb0c0d494171"]
-region       = "us-east-2"
+subnet_ids   = ["subnet-02c7c3ab1730493b5", "subnet-0187eeb0c0d494171"]
 
 # task_environment_vars = [
 #   {
@@ -11,7 +11,7 @@ region       = "us-east-2"
 #   }
 # ]
 
-secrets = [
+task_secrets = [
   {
     name      = "DB_URL"
     valueFrom = "arn:aws:secretsmanager:us-east-2:788796860262:secret:dev/database/productsDB/credentialsv1-Q0IYhU:DB_URL::"

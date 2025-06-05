@@ -1,86 +1,33 @@
-# ----------------------
-# ECS & IAM & SQS
-# ----------------------
-resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.service_name}-ecs-execution"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect    = "Allow",
-      Principal = { Service = "ecs-tasks.amazonaws.com" },
-      Action    = "sts:AssumeRole"
-    }]
-  })
+module "iamsr_module" {
+  source = "git::https://github.com/dheimy00/modules-infra-iamsr-aws.git?ref=v1.0.7"
+  iam_policies = [
+    {
+      name     = "policy-task-persons.json"
+      document = "iamsr/policy/policy-task-fargate-persons.json"
+      path     = "/"
+    },
+    {
+      name     = "policy-execution-persons.json"
+      document = "iamsr/policy/policy-execution-fargate-persons.json"
+      path     = "/"
+    }
+  ]
+  iam_roles = [
+    {
+      name                  = "execution-persons-role"
+      trust_policy_document = "iamsr/trust/ecs-fargate-persons.json"
+      attached_policies = [
+        "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        "policy-execution-persons.json"
+      ]
+    },
+    {
+      name                  = "task-persons-role"
+      trust_policy_document = "iamsr/trust/ecs-fargate-persons.json"
+      attached_policies = [
+        "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+        "policy-task-persons.json"
+      ]
+    }
+  ]
 }
-
-resource "aws_iam_role" "ecs_task_role" {
-  name = "${var.service_name}-ecs-task-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Action    = "sts:AssumeRole",
-      Effect    = "Allow",
-      Principal = { Service = "ecs-tasks.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_exec_attach" {
-  role       = aws_iam_role.ecs_task_execution_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "ecs_task_secrets" {
-  role       = aws_iam_role.ecs_task_role.name
-  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"
-}
-
-resource "aws_iam_role_policy" "policy_permission_sqs" {
-  name = "${var.service_name}-sqs-access"
-  role = aws_iam_role.ecs_task_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Action = [
-        "sqs:SendMessage",
-        "sqs:ReceiveMessage",
-        "sqs:DeleteMessage",
-        "sqs:GetQueueAttributes",
-        "sqs:GetQueueUrl"        
-      ],
-      Resource = "*"
-      }
-    ]
-  })
-}
-
-
-resource "aws_iam_role_policy" "policy_permission_secrets" {
-  name = "${var.service_name}-exec-access"
-  role = aws_iam_role.ecs_task_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Action = [
-        "secretsmanager:GetSecretValue",
-        "secretsmanager:DescribeSecret"
-      ],
-      Resource = "*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "ec2:DescribeNetworkInterfaces"
-        Resource = "*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = "ec2:DetachNetworkInterface"
-        Resource = "*"
-    }]
-  })
-}
-

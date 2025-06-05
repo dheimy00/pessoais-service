@@ -47,6 +47,7 @@ variable "task_environment_vars" {
     name  = string
     value = string
   }))
+  default = []  
 }
 
 variable "task_secrets" {

@@ -4,7 +4,7 @@ data "aws_region" "current" {}
 
 
 module "ecs_fargate" {
-  source = "git::https://github.com/dheimy00/modules-infra-ecs-fargate-aws.git?ref=v1.0.14"
+  source = "git::https://github.com/dheimy00/modules-infra-ecs-fargate-aws.git?ref=v1.0.15"
 
   # Basic Configuration
   service_name = var.service_name
@@ -38,14 +38,13 @@ module "ecs_fargate" {
   # Network Configuration
   is_private_subnet = true
   vpc_cidr          = "10.0.0.0/16"
-  alb_internal      = true
+  nlb_internal      = true
   assign_public_ip  = false
 
-  # ALB Configuration
-  health_check_protocol = "HTTP"
-  health_check_path     = "/actuator/health"
-  health_check_port     = "traffic-port"
-  health_check_matcher  = "200"
+  # Health Check Configuration
+  health_check_port                = "traffic-port"
+  health_check_healthy_threshold   = 3
+  health_check_unhealthy_threshold = 3
 
 
   # Auto Scaling Configuration

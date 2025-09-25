@@ -6,9 +6,9 @@ spring:
     name: pessoais-service
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/productsdb?useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true}
-    username: ${DB_USERNAME:productsrds}
-    password: ${DB_PASSWORD:products2025}
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/productsdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true}
+    username: ${SPRING_DATASOURCE_USERNAME:productsrds}
+    password: ${SPRING_DATASOURCE_PASSWORD:products2025}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   datasource.hikari:

@@ -1,0 +1,189 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: store-namespace
+
+---
+
+# Secret com credenciais do MySQL
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: store-namespace
+type: Opaque
+stringData:
+  password: productpass
+  rootpassword: rootpass123
+
+---
+
+# PVC para MySQL persistente
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: store-namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: standard   # ajuste conforme provedor
+
+---
+
+# Deployment MySQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: store-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: productsdb
+            - name: MYSQL_USER
+              value: productuser
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: rootpassword
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+
+---
+
+# Service MySQL (ClusterIP interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: store-namespace
+spec:
+  selector:
+    app: mysql
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: 3306
+
+---
+
+# Deployment Product Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+  namespace: store-namespace
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-service
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: product-service
+        version: v1
+    spec:
+      containers:
+        - name: product-service
+          image: app-products-v1:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:mysql://mysql.store-namespace.svc.cluster.local:3306/productsdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+            - name: SPRING_DATASOURCE_USERNAME
+              value: productuser
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: password
+
+---
+
+# Service Product Service (ClusterIP interno)
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: store-namespace
+spec:
+  selector:
+    app: product-service
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+
+---
+
+# Service LoadBalancer (opcional, acesso direto)
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service-lb
+  namespace: store-namespace
+spec:
+  selector:
+    app: product-service
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+
+---
+
+# Ingress para roteamento e paths
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: products-service-ingress
+  namespace: store-namespace
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: store.example.com      # altere para seu domínio
+      http:
+        paths:
+          - path: /products(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: product-service
+                port:
+                  number: 8080

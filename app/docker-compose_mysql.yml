@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: productsdb
+      MYSQL_USER: productsrds
+      MYSQL_PASSWORD: products2025
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+#  flyway:
+#    image: flyway/flyway:9.22.3  # Ou mais recente
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
+#    volumes:
+#      - ./sql:/flyway/sql  # scripts de migração .sql
+#    command: -url=jdbc:mysql://mysql:3306/productsdb -user=productsrds -password=products2025 migrate
+
+volumes:
+  mysql_data:
